@@ -1,0 +1,8 @@
+numpy>=1.26.0,<3
+streamlit>=1.32.0,<2
+python-dotenv>=1.0.0,<2
+PyMuPDF>=1.24.0,<2
+chromadb>=1.0.0,<2
+cohere>=5.0.0,<8
+google-genai>=1.0.0,<2
+pytest>=8.0.0,<9

@@ -1,0 +1,21 @@
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Uploaded documents and local vector database
+data/uploads/
+chroma_db/
+
+# Local development
+.vscode/
+.idea/
+.DS_Store

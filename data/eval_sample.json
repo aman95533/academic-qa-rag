@@ -1,0 +1,35 @@
+{
+  "description": "Sample evaluation queries for the Academic Q&A RAG system. After indexing your own PDFs, update 'relevant_chunk_substrings' to match actual text in your documents. Hit@k scores are only meaningful when the indexed content contains these substrings.",
+  "queries": [
+    {
+      "query_id": "q1",
+      "question": "What is photosynthesis?",
+      "relevant_chunk_substrings": ["photosynthesis", "chlorophyll", "light energy"],
+      "reference_answer": "Process by which plants convert light energy into chemical energy using chlorophyll."
+    },
+    {
+      "query_id": "q2",
+      "question": "Define Newton's first law of motion.",
+      "relevant_chunk_substrings": ["Newton", "inertia", "first law"],
+      "reference_answer": "An object remains at rest or in uniform motion unless acted upon by a net force."
+    },
+    {
+      "query_id": "q3",
+      "question": "What is the role of mitochondria in a cell?",
+      "relevant_chunk_substrings": ["mitochondria", "ATP", "energy", "powerhouse"],
+      "reference_answer": "Mitochondria generate ATP through cellular respiration and are the main energy source for the cell."
+    },
+    {
+      "query_id": "q4",
+      "question": "Explain the water cycle.",
+      "relevant_chunk_substrings": ["evaporation", "condensation", "precipitation", "water cycle"],
+      "reference_answer": "The water cycle involves evaporation, condensation, precipitation, and collection of water."
+    },
+    {
+      "query_id": "q5",
+      "question": "What is machine learning?",
+      "relevant_chunk_substrings": ["machine learning", "algorithm", "training", "model"],
+      "reference_answer": "Machine learning is a subset of AI where algorithms learn patterns from data without being explicitly programmed."
+    }
+  ]
+}
