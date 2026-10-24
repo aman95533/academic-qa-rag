@@ -15,6 +15,13 @@ PDF Upload
 PyMuPDF — extract text per page (filename + page number preserved)
     │
     ▼
+Text quality check
+    │
+    ├── Readable text → use extracted text
+    │
+    └── Garbled/scanned text → Tesseract OCR fallback
+    │
+    ▼
 Chunking with overlap (800 chars / 120 char overlap by default)
     │
     ▼
@@ -52,6 +59,7 @@ displays a warning instead of an invented answer.
 |---|---|
 | UI | Streamlit |
 | PDF extraction | PyMuPDF |
+| OCR fallback | Tesseract OCR, pytesseract, Pillow |
 | Embeddings | Cohere `embed-multilingual-v3.0` (English + Hindi-friendly) |
 | Vector database | ChromaDB (local `chroma_db/` folder) |
 | LLM | Google Gemini via `google-genai` SDK |
@@ -77,7 +85,7 @@ Both are configurable via `.env`. Duplicate chunks (same SHA-256 hash) are skipp
 ```
 academic-qa-rag/
 ├── app.py            Streamlit UI (upload, chat, quiz, health tabs)
-├── ingest.py         PDF extraction, validation, chunking + metadata
+├── ingest.py         PDF extraction, OCR fallback, validation, chunking + metadata
 ├── retrieval.py      Cohere embeddings, ChromaDB persistence, semantic search
 ├── generation.py     Gemini grounded Q&A, answer modes, quiz JSON parsing
 ├── evaluation.py     Retrieval hit@k, latency metrics, CLI runner
@@ -110,7 +118,8 @@ Requires **Python 3.10+**.
 > require MSVC build tools or compiling `chroma-hnswlib` from source.
 
 ```powershell
-cd d:\NEW\hcl_Project\academic-qa-rag
+# Go to the project folder
+cd path\to\academic-qa-rag
 
 # Create virtual environment
 python -m venv .venv
@@ -127,6 +136,17 @@ If `pip install` fails, upgrade pip first:
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+### 1b. Tesseract OCR (for the scanned-PDF fallback)
+
+`pytesseract` is only a Python wrapper — the **Tesseract OCR engine itself must be installed
+separately** and be available on your system `PATH`.
+
+- **Windows:** install Tesseract (e.g. the UB Mannheim installer) and add its install folder to `PATH`.
+- **macOS:** `brew install tesseract`
+- **Ubuntu/Debian:** `sudo apt install tesseract-ocr`
+
+Verify with `tesseract --version`. OCR currently uses `lang="eng"` (English only).
 
 ---
 
@@ -176,7 +196,9 @@ Open `http://localhost:8501` in your browser.
 ### Documents tab
 1. Click **Browse files** and select one or more PDF files.
 2. Wait for the green success message confirming how many chunks were indexed.
-3. If you see a yellow warning about a scanned PDF — that file has no extractable text (OCR not supported).
+3. If a PDF contains garbled or image-based text, the app attempts
+   OCR using Tesseract. OCR accuracy depends on document quality
+   and the language configured for recognition.
 
 ### Q&A Chat tab
 1. Choose an **Answer mode** in the sidebar (each mode changes the actual Gemini instructions).
@@ -263,8 +285,21 @@ This loads `data/eval_sample.json` and reports:
 - Answer relevance to the question
 
 > The evaluation script does **not** fabricate quality scores for subjective metrics.
-> The sample dataset contains 5 seed queries — update `data/eval_sample.json` with
-> substrings from your own indexed PDFs for meaningful hit@k scores.
+> The sample dataset contains 5 queries based on a Process Synchronization PDF — update
+> `data/eval_sample.json` with substrings from your own indexed PDFs for meaningful hit@k scores.
+
+### Latest Evaluation
+
+- Evaluation dataset: 5 queries based on Process Synchronization.
+- Retrieval hit rate: 1.00 (5/5).
+- Average retrieval latency: 0.5668 seconds.
+- Average answer latency: 0.8098 seconds.
+
+All 27 automated tests passed.
+
+**Note:** Retrieval hit rate measures whether relevant content was found
+in the top-k retrieved chunks. Answer faithfulness, correctness, and
+relevance require separate human evaluation.
 
 ---
 
@@ -274,7 +309,8 @@ This loads `data/eval_sample.json` and reports:
 |---|---|
 | `Missing COHERE_API_KEY` error on startup | Add keys to `.env` and restart Streamlit |
 | `Missing GEMINI_API_KEY` error on answer | Add key to `.env` and restart Streamlit |
-| Scanned PDF / no text warning | Use a text-based PDF (one where you can select text in a viewer) |
+| Scanned PDF / no text warning | OCR fallback was attempted but found little or no text; try a higher-quality scan or a text-based PDF |
+| `TesseractNotFoundError` | Install the Tesseract OCR engine and make sure it is on your `PATH` (see Setup 1b) |
 | Empty retrieval result | Confirm indexing succeeded; rephrase your question |
 | Embedding dimension mismatch | Different embed model was used previously — click **Reset vector index** in sidebar |
 | `chromadb` install fails on Windows | Run `python -m pip install --upgrade pip` then reinstall |
@@ -285,7 +321,10 @@ This loads `data/eval_sample.json` and reports:
 
 ## Limitations
 
-- **No OCR** — scanned PDFs (images of text) cannot be processed.
+- **OCR limitations** — OCR fallback is available for pages with
+  garbled or insufficient extractable text. Recognition may be
+  inaccurate for low-quality scans, complex layouts, or unsupported
+  languages.
 - **Citations are retrieved passages** — not guaranteed sentence-level attribution. The system shows
   which chunk (filename + page) was retrieved; it does not highlight the exact sentence Gemini used.
 - **Optional features** — Cohere Rerank is off by default (`ENABLE_RERANK=true` to enable).
@@ -294,3 +333,5 @@ This loads `data/eval_sample.json` and reports:
   documented but not automated.
 - **Session-scoped index tracking** — the `indexed_files` list in the UI resets on page refresh,
   but the ChromaDB vectors persist on disk (so you don't need to re-index after a refresh).
+- **Hosted deployments** — local ChromaDB persistence is not guaranteed on cloud platforms
+  (e.g. Streamlit Cloud); storage may or may not persist depending on the hosting environment.

@@ -16,6 +16,15 @@ from PIL import Image
 
 from config import ALLOWED_EXTENSIONS, CHUNK_OVERLAP, CHUNK_SIZE, MAX_UPLOAD_BYTES
 
+# import pytesseract
+# from pathlib import Path
+
+TESSERACT_EXE = Path(
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+)
+
+if TESSERACT_EXE.exists():
+    pytesseract.pytesseract.tesseract_cmd = str(TESSERACT_EXE)
 
 @dataclass
 class PageText:
