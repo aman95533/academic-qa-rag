@@ -1,35 +1,51 @@
 {
-  "description": "Sample evaluation queries for the Academic Q&A RAG system. After indexing your own PDFs, update 'relevant_chunk_substrings' to match actual text in your documents. Hit@k scores are only meaningful when the indexed content contains these substrings.",
+  "description": "Evaluation queries for the Process Synchronization PDF. Relevant substrings are based on the indexed document and should be verified against retrieved chunks.",
   "queries": [
     {
       "query_id": "q1",
-      "question": "What is photosynthesis?",
-      "relevant_chunk_substrings": ["photosynthesis", "chlorophyll", "light energy"],
-      "reference_answer": "Process by which plants convert light energy into chemical energy using chlorophyll."
+      "question": "What is process synchronization?",
+      "relevant_chunk_substrings": [
+        "Process Synchronization",
+        "Independent Process",
+        "Cooperative Process"
+      ],
+      "reference_answer": "Processes are categorized as independent or cooperative based on synchronization. Cooperative processes can affect or be affected by other processes."
     },
     {
       "query_id": "q2",
-      "question": "Define Newton's first law of motion.",
-      "relevant_chunk_substrings": ["Newton", "inertia", "first law"],
-      "reference_answer": "An object remains at rest or in uniform motion unless acted upon by a net force."
+      "question": "What is a critical section?",
+      "relevant_chunk_substrings": [
+        "critical section",
+        "shared variables",
+        "Mutual Exclusion"
+      ],
+      "reference_answer": "A critical section is the part of a process that accesses shared data or resources and must be protected to avoid concurrent access problems."
     },
     {
       "query_id": "q3",
-      "question": "What is the role of mitochondria in a cell?",
-      "relevant_chunk_substrings": ["mitochondria", "ATP", "energy", "powerhouse"],
-      "reference_answer": "Mitochondria generate ATP through cellular respiration and are the main energy source for the cell."
+      "question": "Explain mutual exclusion, progress, and bounded waiting.",
+      "relevant_chunk_substrings": [
+        "Mutual Exclusion",
+        "Progress",
+        "Bounded Waiting"
+      ],
+      "reference_answer": "Mutual exclusion prevents multiple processes from being in the critical section simultaneously. Progress ensures that selecting the next process does not get postponed indefinitely. Bounded waiting limits how long a process waits to enter its critical section."
     },
     {
       "query_id": "q4",
-      "question": "Explain the water cycle.",
-      "relevant_chunk_substrings": ["evaporation", "condensation", "precipitation", "water cycle"],
-      "reference_answer": "The water cycle involves evaporation, condensation, precipitation, and collection of water."
+      "question": "What is Dekker's algorithm?",
+      "relevant_chunk_substrings": ["Dekker", "mutual exclusion", "processes"],
+      "reference_answer": "Dekker's algorithm is an early software solution to the mutual exclusion problem for concurrent processes."
     },
     {
       "query_id": "q5",
-      "question": "What is machine learning?",
-      "relevant_chunk_substrings": ["machine learning", "algorithm", "training", "model"],
-      "reference_answer": "Machine learning is a subset of AI where algorithms learn patterns from data without being explicitly programmed."
+      "question": "What is inter-process communication (IPC)?",
+      "relevant_chunk_substrings": [
+        "Inter-Process Communication",
+        "IPC",
+        "processes"
+      ],
+      "reference_answer": "Inter-process communication provides mechanisms through which processes communicate and exchange information."
     }
   ]
 }

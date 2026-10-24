@@ -11,6 +11,9 @@ from typing import BinaryIO
 
 import pymupdf as fitz  # PyMuPDF
 
+import pytesseract
+from PIL import Image
+
 from config import ALLOWED_EXTENSIONS, CHUNK_OVERLAP, CHUNK_SIZE, MAX_UPLOAD_BYTES
 
 
@@ -61,9 +64,33 @@ def validate_upload(filename: str, file_size: int) -> None:
             f"File exceeds maximum size of {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
         )
 
+def _needs_ocr(text: str) -> bool:
+    non_space = [c for c in text if not c.isspace()]
 
-def extract_text_from_pdf(source: BinaryIO | Path, filename: str) -> ExtractedDocument:
-    """Extract per-page text from a PDF using PyMuPDF."""
+    if len(non_space) < 40:
+        return True
+
+    letters = sum(c.isalpha() for c in non_space)
+    return letters / len(non_space) < 0.30
+
+
+def _ocr_page(page) -> str:
+    pix = page.get_pixmap(matrix=fitz.Matrix(3, 3), alpha=False)
+    image = Image.frombytes(
+        "RGB",
+        [pix.width, pix.height],
+        pix.samples,
+    )
+    return pytesseract.image_to_string(image, lang="eng")
+
+def normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+def extract_text_from_pdf(
+    source: BinaryIO | Path,
+    filename: str,
+) -> ExtractedDocument:
+    """Extract readable text, using OCR when PDF text is garbled."""
     try:
         if isinstance(source, Path):
             doc = fitz.open(source)
@@ -75,42 +102,39 @@ def extract_text_from_pdf(source: BinaryIO | Path, filename: str) -> ExtractedDo
     except IngestionError:
         raise
     except Exception as exc:
-        raise IngestionError(f"Could not open PDF '{filename}': {exc}") from exc
+        raise IngestionError(
+            f"Could not open PDF '{filename}': {exc}"
+        ) from exc
 
     pages: list[PageText] = []
     total_chars = 0
+
     try:
         for i in range(len(doc)):
             page = doc.load_page(i)
-            text = page.get_text("text") or ""
-            text = normalize_whitespace(text)
+            text = normalize_whitespace(page.get_text("text") or "")
+
+            if _needs_ocr(text):
+                try:
+                    ocr_text = normalize_whitespace(_ocr_page(page))
+                    if ocr_text and not _needs_ocr(ocr_text):
+                        text = ocr_text
+                except Exception as exc:
+                    raise IngestionError(
+                        f"OCR failed on page {i + 1} of '{filename}': {exc}"
+                    ) from exc
+
             pages.append(PageText(page_number=i + 1, text=text))
             total_chars += len(text)
     finally:
         doc.close()
 
-    if total_chars == 0:
-        return ExtractedDocument(
-            filename=filename,
-            pages=pages,
-            is_likely_scanned=True,
-            total_chars=0,
-        )
-
     return ExtractedDocument(
         filename=filename,
         pages=pages,
-        is_likely_scanned=False,
+        is_likely_scanned=(total_chars == 0),
         total_chars=total_chars,
     )
-
-
-def normalize_whitespace(text: str) -> str:
-    text = text.replace("\x00", " ")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
-
 
 def chunk_pages(
     document: ExtractedDocument,
@@ -131,13 +155,24 @@ def chunk_pages(
     for page in document.pages:
         if not page.text:
             continue
-        page_chunks = _split_text_with_overlap(page.text, chunk_size, chunk_overlap)
-        for local_idx, piece in enumerate(page_chunks):
-            content_hash = hashlib.sha256(piece.encode("utf-8")).hexdigest()[:16]
+
+        page_chunks = _split_text_with_overlap(
+            page.text, chunk_size, chunk_overlap
+        )
+
+        for piece in page_chunks:
+            content_hash = hashlib.sha256(
+                piece.encode("utf-8")
+            ).hexdigest()[:16]
+
             if content_hash in seen_hashes:
                 continue
+
             seen_hashes.add(content_hash)
-            chunk_id = f"{document.filename}::p{page.page_number}::c{global_index}"
+            chunk_id = (
+                f"{document.filename}::p{page.page_number}::c{global_index}"
+            )
+
             chunks.append(
                 TextChunk(
                     chunk_id=chunk_id,
@@ -149,30 +184,31 @@ def chunk_pages(
                 )
             )
             global_index += 1
-            _ = local_idx
 
     return chunks
 
 
-def _split_text_with_overlap(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+def _split_text_with_overlap(
+    text: str,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> list[str]:
     if len(text) <= chunk_size:
         return [text]
 
     parts: list[str] = []
     start = 0
+
     while start < len(text):
         end = min(start + chunk_size, len(text))
         piece = text[start:end].strip()
+
         if piece:
             parts.append(piece)
+
         if end >= len(text):
             break
-        start = end - chunk_overlap
-        if start < 0:
-            start = 0
+
+        start = max(0, end - chunk_overlap)
 
     return parts
-
-
-def make_chunk_id() -> str:
-    return str(uuid.uuid4())
