@@ -26,7 +26,7 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "120"))
 DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
 
 # Model IDs (override via .env)
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 COHERE_EMBED_MODEL = os.getenv("COHERE_EMBED_MODEL", "embed-multilingual-v3.0")
 COHERE_RERANK_MODEL = os.getenv("COHERE_RERANK_MODEL", "rerank-multilingual-v3.0")
 

@@ -1,6 +1,7 @@
 """Gemini-based grounded answers, quiz generation, and response parsing."""
 
 from __future__ import annotations
+from functools import lru_cache
 
 import json
 import re
@@ -67,6 +68,7 @@ class GenerationError(Exception):
     pass
 
 
+@lru_cache(maxsize=1)
 def _client() -> genai.Client:
     return genai.Client(api_key=get_gemini_api_key())
 
